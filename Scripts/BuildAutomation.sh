@@ -17,7 +17,7 @@ if [ -f "$UNREAL_ENGINE_PATH/Engine/Intermediate/Build/BuildRules/UE5RulesManife
 fi
 
 # Find dotnet
-if [[ "$OSTYPE" = "msys" ]]; then
+if [[ "$OSTYPE" = "msys" || "$OSTYPE" = "cygwin" ]]; then
   DOTNET=$(find "$UNREAL_ENGINE_PATH/Engine/Binaries/ThirdParty/DotNet" -type f -name dotnet.exe)
 elif [[ "$OSTYPE" = "darwin"* ]]; then
   DOTNETS=$(find "$UNREAL_ENGINE_PATH/Engine/Binaries/ThirdParty/DotNet" -type f -name dotnet)
