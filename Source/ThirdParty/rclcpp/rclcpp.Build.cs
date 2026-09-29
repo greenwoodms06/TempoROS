@@ -27,6 +27,41 @@ public class rclcpp : ModuleRules
         return Directory.EnumerateFiles(dir, "*." + suffix, SearchOption.AllDirectories);
     }
 
+    // The plugin libraries pluginlib can load from this ament prefix: every <library path="X"> in each plugin description
+    // xml that the ament index registers under a "<base>__pluginlib__plugin" resource. Returns the X.dll paths in prefixDir.
+    private HashSet<string> FindPluginlibLibraries(string prefixDir)
+    {
+        HashSet<string> libraries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string resourceIndex = Path.Combine(prefixDir, "share", "ament_index", "resource_index");
+        if (!Directory.Exists(resourceIndex))
+        {
+            return libraries;
+        }
+        foreach (string resourceDir in Directory.EnumerateDirectories(resourceIndex, "*__pluginlib__plugin"))
+        {
+            foreach (string resource in Directory.EnumerateFiles(resourceDir))
+            {
+                foreach (string line in File.ReadAllLines(resource))
+                {
+                    string xml = Path.Combine(prefixDir, line.Trim());
+                    if (line.Trim().Length == 0 || !File.Exists(xml))
+                    {
+                        continue;
+                    }
+                    foreach (Match match in Regex.Matches(File.ReadAllText(xml), "<library\\s+path=\"([^\"]+)\""))
+                    {
+                        string dll = Path.Combine(prefixDir, match.Groups[1].Value + ".dll");
+                        if (File.Exists(dll))
+                        {
+                            libraries.Add(dll);
+                        }
+                    }
+                }
+            }
+        }
+        return libraries;
+    }
+
     public ModuleDepPaths GatherDeps()
     {
         List<string> HeaderPaths = new List<string>();
@@ -80,10 +115,20 @@ public class rclcpp : ModuleRules
         // Windows loader binds rclcpp's imports before any of our code - TempoROSBootstrap included - gets to run.
         // No module startup hook can ever be early enough. The executable's own directory is the one place the
         // loader searches unaided, so stage the dlls there. Every later load by name (the rmw implementation,
-        // typesupport, and image_transport's pluginlib plugins) resolves from that same directory too.
+        // typesupport) resolves from that same directory too.
         // The share directory is deliberately left where it is, since AMENT_PREFIX_PATH points at its parent.
+        // NOTE: pluginlib plugins (image_transport's) are the exception. pluginlib looks for the plugin library FILE
+        // under the ament prefix and skips a plugin whose file is not there, before any load by name is attempted, so
+        // with the dll only next to the executable every image publisher fails with "No plugins found!". They are
+        // staged in BOTH places: next to the executable (their imports), and in the prefix (pluginlib's lookup).
+        // Found by a packaged Win64 demo (dains-thermal DAINS-144, 2026-09-29): copying the four image_transport
+        // plugin dlls into the prefix was the only change between a failing and a passing run.
         bool bStageDllsNextToExecutable = Target.Platform == UnrealTargetPlatform.Win64 &&
                                           Target.LinkType == TargetLinkType.Monolithic;
+
+        HashSet<string> pluginlibLibraries = bStageDllsNextToExecutable
+            ? FindPluginlibLibraries(Path.Combine(ModuleDirectory, "Binaries", "Windows"))
+            : new HashSet<string>();
 
         foreach (string libraryPath in moduleDepPaths.RuntimeLibraryPaths)
         {
@@ -91,6 +136,10 @@ public class rclcpp : ModuleRules
             {
                 RuntimeDependencies.Add(Path.Combine("$(TargetOutputDir)", Path.GetFileName(libraryPath)),
                     libraryPath, StagedFileType.NonUFS);
+                if (pluginlibLibraries.Contains(libraryPath))
+                {
+                    RuntimeDependencies.Add(libraryPath);
+                }
             }
             else
             {
