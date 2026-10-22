@@ -13,7 +13,28 @@
 
 #include "rclcpp/utilities.hpp"
 
+#include <atomic>
+
 DEFINE_LOG_CATEGORY(LogTempoROS);
+
+namespace
+{
+	// Static, not module members, because IsROSInitialized is static and may be called off the game thread.
+	std::atomic<bool> bROSInitialized{false};
+	std::atomic<bool> bROSInitFailed{false};
+	std::atomic<bool> bLoggedROSUnavailable{false};
+
+	const TCHAR* const ROSUnavailableHint = TEXT("On Windows the usual cause is the two OpenSSL 1.1 DLLs missing beside "
+		"the rclcpp binaries; run tools/temporos/post_setup_windows.sh from the RealisticSensorsTestbed root (README).");
+
+	void LogROSUnavailableOnce(const FString& Cause)
+	{
+		if (!bLoggedROSUnavailable.exchange(true))
+		{
+			UE_LOG(LogTempoROS, Error, TEXT("TempoROS is unavailable (IsROSInitialized is false): %s %s"), *Cause, ROSUnavailableHint);
+		}
+	}
+}
 
 void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value)
 {
@@ -103,9 +124,34 @@ void FTempoROSModule::ShutdownModule()
 
 bool FTempoROSModule::IsROSInitialized()
 {
-	// rclcpp::ok() reports whether the global default context is valid: false before rclcpp::init succeeds,
-	// after rclcpp::shutdown, and after rclcpp's own signal handler shuts the context down.
-	return rclcpp::ok();
+	// NOTE: rclcpp::ok() THROWS, rather than returning false, when rclcpp::init failed (measured 2026-10-21
+	// with libssl-1_1-x64.dll held out: an unhandled 0xe06d7363 from rclcpp.dll ended the editor). So it is
+	// only asked once init succeeded, and even then a throw is caught: an escaping exception kills the process.
+	if (bROSInitFailed)
+	{
+		LogROSUnavailableOnce(TEXT("rclcpp::init failed at startup (see the 'Failed to initialize rclcpp' error above)."));
+		return false;
+	}
+	if (!bROSInitialized)
+	{
+		// Not started yet, or shut down (e.g. around a hot reload): not a failure.
+		return false;
+	}
+	try
+	{
+		// rclcpp::ok() reports whether the global default context is valid: false after rclcpp::shutdown,
+		// and after rclcpp's own signal handler shuts the context down.
+		return rclcpp::ok();
+	}
+	catch (const std::exception& E)
+	{
+		LogROSUnavailableOnce(FString::Printf(TEXT("rclcpp::ok() threw '%s'."), UTF8_TO_TCHAR(E.what())));
+	}
+	catch (...)
+	{
+		LogROSUnavailableOnce(TEXT("rclcpp::ok() threw a non-std exception."));
+	}
+	return false;
 }
 
 void FTempoROSModule::InitROS()
@@ -158,10 +204,13 @@ void FTempoROSModule::InitROS()
 	{
 		// Leave bROSInitialized false. Otherwise the failure is silent here and only resurfaces later,
 		// as a confusing error from every UTempoROSNode::Create call against an uninitialized context.
-		UE_LOG(LogTempoROS, Error, TEXT("Failed to initialize rclcpp with error: %s. TempoROS will be unavailable."), UTF8_TO_TCHAR(E.what()));
+		UE_LOG(LogTempoROS, Error, TEXT("Failed to initialize rclcpp with error: %s. TempoROS will be unavailable. %s"), UTF8_TO_TCHAR(E.what()), ROSUnavailableHint);
+		bROSInitFailed = true;
 		return;
 	}
 
+	bROSInitFailed = false;
+	bLoggedROSUnavailable = false;
 	bROSInitialized = true;
 }
 
