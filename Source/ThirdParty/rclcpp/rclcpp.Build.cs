@@ -121,7 +121,7 @@ public class rclcpp : ModuleRules
         // under the ament prefix and skips a plugin whose file is not there, before any load by name is attempted, so
         // with the dll only next to the executable every image publisher fails with "No plugins found!". They are
         // staged in BOTH places: next to the executable (their imports), and in the prefix (pluginlib's lookup).
-        // Found by a packaged Win64 demo (dains-thermal DAINS-144, 2026-09-29): copying the four image_transport
+        // Found by a packaged Win64 demo (the thermal host project, 2026-09-29): copying the four image_transport
         // plugin dlls into the prefix was the only change between a failing and a passing run.
         bool bStageDllsNextToExecutable = Target.Platform == UnrealTargetPlatform.Win64 &&
                                           Target.LinkType == TargetLinkType.Monolithic;
