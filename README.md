@@ -204,6 +204,9 @@ if (Target.Platform == UnrealTargetPlatform.Win64)
 ### Clock Server
 The `/clock` topic is special in ROS because it is the only topic for which there may only be one publisher. `TempoROS` includes a `UTempoROSClockServer` subsystem, which will automatically be created and will publish the simulation time to the `/clock` channel every frame. You don't have to do anything to enable this, but be sure not to publish anything on the `/clock` channel yourself. If something else in your ROS graph is the time authority (for example, another simulator publishing to `/clock`), you can disable the clock server by unchecking `Publish Clock` in the TempoROS plugin settings.
 
+### Discovery Range
+By default `TempoROS` discovers and is discovered by ROS nodes on this machine only: the `ROS Discovery Range` setting (Networking, in the TempoROS plugin settings) is `Localhost`. Choose `Subnet` to reach ROS nodes on other machines of the local network. The bundled `rclcpp` is Humble, so the setting is applied as `ROS_LOCALHOST_ONLY` (`1` for `Localhost`, `0` for `Subnet`) before `rclcpp::init`; it overrides the variable from your environment.
+
 ### TF2
 ROS includes [tf2](https://wiki.ros.org/tf2), a library that makes subscribing and publishing a graph of transforms more convenient. Some advantages over publishing raw transform messages include:
 - It handles transform interpolation. You can ask tf2 for the transform from one frame to another at a specific time, and it will interpolate its internal time buffer of transforms to provide the most accurate response it can.
