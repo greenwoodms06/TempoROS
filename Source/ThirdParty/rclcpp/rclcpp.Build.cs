@@ -123,8 +123,6 @@ public class rclcpp : ModuleRules
         // staged in BOTH places: next to the executable (their imports), and in the prefix (pluginlib's lookup).
         // Found by a packaged Win64 demo (the thermal host project, 2026-09-29): copying the four image_transport
         // plugin dlls into the prefix was the only change between a failing and a passing run.
-        // Names scrubbed 2026-11-02 (testbed plan 2.3): internal names and record ids in dated lines were replaced by
-        // neutral words; the repository history before this date keeps the original.
         bool bStageDllsNextToExecutable = Target.Platform == UnrealTargetPlatform.Win64 &&
                                           Target.LinkType == TargetLinkType.Monolithic;
 
