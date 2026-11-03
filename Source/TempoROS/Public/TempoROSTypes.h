@@ -54,6 +54,16 @@ enum class ERMWImplementation: uint8
 	CycloneDDS = 1,
 };
 
+// Which machines ROS discovery reaches.
+UENUM(Blueprintable, BlueprintType)
+enum class EROSDiscoveryRange: uint8
+{
+	// Only this machine.
+	Localhost = 0,
+	// Every machine on the local network.
+	Subnet = 1,
+};
+
 UENUM(Blueprintable, BlueprintType)
 enum class EROSQOSReliability: uint8
 {

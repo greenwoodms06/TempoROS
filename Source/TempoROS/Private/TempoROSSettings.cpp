@@ -50,7 +50,8 @@ void UTempoROSSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor").OnApplicationRestartRequired();
 #endif
 	}
-	else if (PropertyChangedEvent.MemberProperty->GetName() == GET_MEMBER_NAME_CHECKED(UTempoROSSettings, ROSDomainID))
+	else if (PropertyChangedEvent.MemberProperty->GetName() == GET_MEMBER_NAME_CHECKED(UTempoROSSettings, ROSDomainID) ||
+		PropertyChangedEvent.MemberProperty->GetName() == GET_MEMBER_NAME_CHECKED(UTempoROSSettings, ROSDiscoveryRange))
 	{
 		TempoROSSettingsChangedEvent.Broadcast();
 #if WITH_EDITOR

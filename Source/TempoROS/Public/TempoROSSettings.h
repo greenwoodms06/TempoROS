@@ -29,6 +29,7 @@ public:
 	ERMWImplementation GetRMWImplementation() const { return RMWImplementation; }
 	FString GetCycloneDDS_URI() const { return CycloneDDS_URI.FilePath; }
 	int32 GetROSDomainID() const { return ROSDomainID; }
+	EROSDiscoveryRange GetROSDiscoveryRange() const { return ROSDiscoveryRange; }
 	bool GetPublishClock() const { return bPublishClock; }
 	FTempoROSSettingsChanged TempoROSSettingsChangedEvent;
 
@@ -49,6 +50,12 @@ private:
 	// You can have multiple ROS domains on a single local network by providing a unique ID for each.
 	UPROPERTY(EditAnywhere, Config, Category="Networking", meta=(ClampMin=0, ClampMax=101, UIMin=0, UIMax=101))
 	int32 ROSDomainID = 0;
+
+	// Which machines ROS discovery reaches. Subnet (the default, TempoROS's behaviour before this setting) reaches ROS
+	// nodes on other machines of the local network; Localhost keeps this process's topics on this machine, which also
+	// cuts off a subscriber in WSL2 (NAT networking) or in a container.
+	UPROPERTY(EditAnywhere, Config, Category="Networking")
+	EROSDiscoveryRange ROSDiscoveryRange = EROSDiscoveryRange::Subnet;
 
 	// The middleware implementation to use. Note that on Mac only CycloneDDS is supported.
 	UPROPERTY(EditAnywhere, Config, Category="RMW")

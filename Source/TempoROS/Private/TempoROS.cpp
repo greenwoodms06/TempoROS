@@ -154,6 +154,11 @@ bool FTempoROSModule::IsROSInitialized()
 	return false;
 }
 
+const TCHAR* FTempoROSModule::LocalhostOnlyEnvValue(EROSDiscoveryRange Range)
+{
+	return Range == EROSDiscoveryRange::Localhost ? TEXT("1") : TEXT("0");
+}
+
 void FTempoROSModule::InitROS()
 {
 	if (bROSInitialized)
@@ -195,6 +200,10 @@ void FTempoROSModule::InitROS()
 
 	// ROS_DOMAIN_ID
 	SetEnvironmentVar(TEXT("ROS_DOMAIN_ID"), *FString::FromInt(TempoROSSettings->GetROSDomainID()));
+
+	// Discovery range. The bundled rclcpp is Humble (rclcpp 16.0, rcl 5.3), which reads ROS_LOCALHOST_ONLY ("1":
+	// this machine only; anything else: the network). ROS_AUTOMATIC_DISCOVERY_RANGE replaces it from Iron on.
+	SetEnvironmentVar(TEXT("ROS_LOCALHOST_ONLY"), LocalhostOnlyEnvValue(TempoROSSettings->GetROSDiscoveryRange()));
 
 	try
 	{
