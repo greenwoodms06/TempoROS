@@ -15,12 +15,11 @@ public:
 
 	// Whether there is a valid ROS context. When false no ROS object may be created or spun. Callers
 	// must check this (or the result of UTempoROSNode::Create) rather than relying on rclcpp to throw,
-	// since an escaping rclcpp exception takes down the process.
+	// since an escaping rclcpp exception takes down the process. Never throws: false (with one Error
+	// log) when rclcpp::init failed or rclcpp::ok() throws.
 	static bool IsROSInitialized();
 
 private:
 	void InitROS();
 	void ShutdownROS();
-
-	bool bROSInitialized = false;
 };
