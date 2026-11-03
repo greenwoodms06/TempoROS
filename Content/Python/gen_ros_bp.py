@@ -75,7 +75,8 @@ class ROSBlueprintGenerator:
     def find_modules(self) -> List[Tuple[str, Path]]:
         """Find all modules by scanning for *.Build.cs files"""
         modules = []
-        for build_cs in self.project_root.rglob("*.Build.cs"):
+        # Filtered walk (skips hidden dirs like .venv, whose WSL-made symlinks make an unfiltered rglob raise WinError 1920 on Windows).
+        for build_cs in find_files_filtered(self.project_root, {'.Build.cs'}):
             module_name = build_cs.stem.split('.')[0]
             module_path = build_cs.parent
             modules.append((module_name, module_path))
