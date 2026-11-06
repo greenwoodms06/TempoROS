@@ -149,78 +149,17 @@ public:
 	// Publish the "static" transform, which will be latched and provided to all new listeners, between the To and From
 	// frames at the specified time. Timestamp=0.0 (the default) means "now".
 	UFUNCTION(BlueprintCallable, BlueprintPure=false, meta=(AutoCreateRefTerm="FromFrame,Timestamp", HidePin="Timestamp"))
-	bool PublishStaticTransform(const FTransform& Transform, const FString& ToFrame, const FString& FromFrame="", double Timestamp=0.0) const
-	{
-		FString FromFrameResolved = FromFrame;
-		if (FromFrameResolved.IsEmpty())
-		{
-			FromFrameResolved = GetDefault<UTempoROSSettings>()->GetFixedFrameName();
-		}
-		double TimestampResolved = Timestamp;
-		if (TimestampResolved == 0.0)
-		{
-			TimestampResolved = GetWorld()->GetTimeSeconds();
-		}
-		try
-		{
-			StaticTFPublisher->PublishTransform(FStampedTransform(TimestampResolved, FromFrameResolved, ToFrame, Transform));
-		}
-		catch (const std::exception& E)
-		{
-			UE_LOG(LogTempoROS, Error, TEXT("Failed to publish static transform with error: %s"), UTF8_TO_TCHAR(E.what()));
-			return false;
-		}
-		return true;
-	}
+	bool PublishStaticTransform(const FTransform& Transform, const FString& ToFrame, const FString& FromFrame="", double Timestamp=0.0) const;
 
 	// Publish the "dynamic" transform, which will not be latched, between the To and From
 	// frames at the specified time. Timestamp=0.0 (the default) means "now".
 	UFUNCTION(BlueprintCallable, BlueprintPure=false, meta=(AutoCreateRefTerm="FromFrame,Timestamp", HidePin="Timestamp"))
-	bool PublishDynamicTransform(const FTransform& Transform, const FString& ToFrame, const FString& FromFrame="", double Timestamp=0.0) const
-	{
-		FString FromFrameResolved = FromFrame;
-		if (FromFrameResolved.IsEmpty())
-		{
-			FromFrameResolved = GetDefault<UTempoROSSettings>()->GetFixedFrameName();
-		}
-		double TimestampResolved = Timestamp;
-		if (TimestampResolved == 0.0)
-		{
-			TimestampResolved = GetWorld()->GetTimeSeconds();
-		}
-		try
-		{
-			DynamicTFPublisher->PublishTransform(FStampedTransform(TimestampResolved, FromFrameResolved, ToFrame, Transform));
-		}
-		catch (const std::exception& E)
-		{
-			UE_LOG(LogTempoROS, Error, TEXT("Failed to publish dynamic transform with error: %s"), UTF8_TO_TCHAR(E.what()));
-			return false;
-		}
-		return true;
-	}
+	bool PublishDynamicTransform(const FTransform& Transform, const FString& ToFrame, const FString& FromFrame="", double Timestamp=0.0) const;
 
 	// Get the transform between the To and From frames at the specified time.
 	// Timestamp=0.0 (the default) gets the latest transform.
 	UFUNCTION(BlueprintCallable, meta=(AutoCreateRefTerm="FromFrame,Timestamp", HidePin="Timestamp"))
-	bool GetTransform(FTransform& Transform, const FString& ToFrame, const FString& FromFrame="", double Timestamp=0.0) const
-	{
-		FString FromFrameResolved = FromFrame;
-		if (FromFrameResolved.IsEmpty())
-		{
-			FromFrameResolved = GetDefault<UTempoROSSettings>()->GetFixedFrameName();
-		}
-		try
-		{
-			return TFListener->GetTransform(FromFrameResolved, ToFrame, Timestamp, Transform);
-		}
-		catch (const std::exception& E)
-		{
-			UE_LOG(LogTempoROS, Error, TEXT("Failed to publish dynamic transform with error: %s"), UTF8_TO_TCHAR(E.what()));
-			return false;
-		}
-		return true;
-	}
+	bool GetTransform(FTransform& Transform, const FString& ToFrame, const FString& FromFrame="", double Timestamp=0.0) const;
 
 	UFUNCTION(BlueprintCallable)
 	void Tick(float DeltaTime) const;

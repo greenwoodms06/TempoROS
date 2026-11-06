@@ -133,3 +133,74 @@ void UTempoROSNode::RemoveSubscriptions(const FString& Topic)
 	}
 	Subscriptions.Remove(Topic);
 }
+
+// NOTE: these three are defined here, not inline in TempoROSNode.h. Inline, their UE_LOG fails Windows clang in
+// every module that includes the header: there the class is dllimport, so UE_LOG's static LOG_Dynamic has no
+// constant address for its constexpr LOG_Static ("constexpr variable 'LOG_Static' must be initialized by a
+// constant expression"). MSVC accepts it, and the member templates in the header are not affected.
+bool UTempoROSNode::PublishStaticTransform(const FTransform& Transform, const FString& ToFrame, const FString& FromFrame, double Timestamp) const
+{
+	FString FromFrameResolved = FromFrame;
+	if (FromFrameResolved.IsEmpty())
+	{
+		FromFrameResolved = GetDefault<UTempoROSSettings>()->GetFixedFrameName();
+	}
+	double TimestampResolved = Timestamp;
+	if (TimestampResolved == 0.0)
+	{
+		TimestampResolved = GetWorld()->GetTimeSeconds();
+	}
+	try
+	{
+		StaticTFPublisher->PublishTransform(FStampedTransform(TimestampResolved, FromFrameResolved, ToFrame, Transform));
+	}
+	catch (const std::exception& E)
+	{
+		UE_LOG(LogTempoROS, Error, TEXT("Failed to publish static transform with error: %s"), UTF8_TO_TCHAR(E.what()));
+		return false;
+	}
+	return true;
+}
+
+bool UTempoROSNode::PublishDynamicTransform(const FTransform& Transform, const FString& ToFrame, const FString& FromFrame, double Timestamp) const
+{
+	FString FromFrameResolved = FromFrame;
+	if (FromFrameResolved.IsEmpty())
+	{
+		FromFrameResolved = GetDefault<UTempoROSSettings>()->GetFixedFrameName();
+	}
+	double TimestampResolved = Timestamp;
+	if (TimestampResolved == 0.0)
+	{
+		TimestampResolved = GetWorld()->GetTimeSeconds();
+	}
+	try
+	{
+		DynamicTFPublisher->PublishTransform(FStampedTransform(TimestampResolved, FromFrameResolved, ToFrame, Transform));
+	}
+	catch (const std::exception& E)
+	{
+		UE_LOG(LogTempoROS, Error, TEXT("Failed to publish dynamic transform with error: %s"), UTF8_TO_TCHAR(E.what()));
+		return false;
+	}
+	return true;
+}
+
+bool UTempoROSNode::GetTransform(FTransform& Transform, const FString& ToFrame, const FString& FromFrame, double Timestamp) const
+{
+	FString FromFrameResolved = FromFrame;
+	if (FromFrameResolved.IsEmpty())
+	{
+		FromFrameResolved = GetDefault<UTempoROSSettings>()->GetFixedFrameName();
+	}
+	try
+	{
+		return TFListener->GetTransform(FromFrameResolved, ToFrame, Timestamp, Transform);
+	}
+	catch (const std::exception& E)
+	{
+		UE_LOG(LogTempoROS, Error, TEXT("Failed to publish dynamic transform with error: %s"), UTF8_TO_TCHAR(E.what()));
+		return false;
+	}
+	return true;
+}
